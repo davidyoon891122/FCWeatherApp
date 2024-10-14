@@ -9,4 +9,13 @@ data class Forecast(
     var precipitation: Int = 0,
     var precipitationType: String = "",
 ){
+
+    val weather: String
+        get() {
+            return if(precipitationType == "" || precipitationType == "없음") {
+                sky
+            } else {
+                precipitationType
+            }
+        }
 }
