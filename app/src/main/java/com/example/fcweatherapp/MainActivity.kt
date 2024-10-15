@@ -5,6 +5,7 @@ import android.util.Log
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.location.Geocoder
 import android.net.Uri
 import android.provider.Settings
 import android.widget.Toast
@@ -15,6 +16,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.example.fcweatherapp.databinding.ActivityMainBinding
+import com.example.fcweatherapp.databinding.ItemForecastBinding
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import retrofit2.Call
@@ -24,6 +26,7 @@ import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.create
+import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
 
@@ -105,6 +108,23 @@ class MainActivity : AppCompatActivity() {
         }
         fusedLocationClient.lastLocation.addOnSuccessListener {
             Log.e("lastLocation", it.toString())
+
+            Thread {
+                try {
+                    val addressList = Geocoder(this, Locale.KOREA).getFromLocation(
+                        it.latitude,
+                        it.longitude,
+                        1
+                    )
+
+                    runOnUiThread {
+                        binding.locationTextView.text = addressList?.get(0)?.thoroughfare.orEmpty()
+                    }
+                } catch(e: Exception) {
+                    e.printStackTrace()
+                }
+            }.start()
+
             val retrofit = Retrofit.Builder()
                 .baseUrl("http://apis.data.go.kr/")
                 .addConverterFactory(GsonConverterFactory.create())
@@ -161,6 +181,20 @@ class MainActivity : AppCompatActivity() {
                     binding.skyTextView.text = currentForecast.weather
                     binding.precipitationTextView.text = getString(R.string.precipitation_text, currentForecast.precipitation)
 
+                    binding.childForecastLayout.apply {
+                        list.forEachIndexed { index, forecast ->
+                            if (index == 0) {
+                                return@forEachIndexed
+                            }
+                            val itemView = ItemForecastBinding.inflate(layoutInflater)
+                            itemView.timeTextView.text = forecast.forecastTime
+                            itemView.weatherTextView.text = forecast.weather
+                            itemView.temperatureTextView.text = getString(R.string.temperature_text, currentForecast.temperature)
+
+                            addView(itemView.root)
+                        }
+
+                    }
                     Log.e("Forecast", forecastDateTimeMap.toString())
 
                 }
